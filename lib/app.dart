@@ -1,0 +1,30 @@
+import 'package:flutter/material.dart';
+import 'core/theme/app_theme.dart';
+import 'presentation/screens/auth/splash_screen.dart';
+import 'presentation/screens/auth/login_screen.dart';
+import 'presentation/screens/auth/register_screen.dart';
+import 'presentation/screens/auth/email_verify_screen.dart';
+import 'presentation/screens/auth/phone_verify_screen.dart';
+import 'presentation/screens/home/home_screen.dart';
+
+class SeaLinkApp extends StatelessWidget {
+  const SeaLinkApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'SeaLink BD',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      initialRoute: '/splash',
+      routes: {
+        '/splash': (_) => const SplashScreen(),
+        '/login': (_) => const LoginScreen(),
+        '/register': (_) => const RegisterScreen(),
+        '/verify-email': (_) => const EmailVerifyScreen(),
+        '/verify-phone': (_) => const PhoneVerifyScreen(),
+        '/home': (_) => const HomeScreen(),
+      },
+    );
+  }
+}
