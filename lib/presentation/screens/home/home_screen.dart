@@ -9,6 +9,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
+    final isSupplier = user?.role == 'SUPPLIER';
 
     return Scaffold(
       appBar: AppBar(
@@ -25,67 +26,66 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.check_circle, size: 80, color: Colors.green),
-              const SizedBox(height: 20),
-              Text(
-                'Welcome, ${user?.name ?? "User"}!',
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 20),
+            const Icon(Icons.check_circle, size: 70, color: Colors.green),
+            const SizedBox(height: 16),
+            Text(
+              'Welcome, ${user?.name ?? "User"}!',
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            _infoRow(Icons.person, 'Username', user?.username ?? '-'),
+            _infoRow(Icons.email, 'Email', user?.email ?? '-'),
+            _infoRow(Icons.phone, 'Phone', user?.phone ?? '-'),
+            const SizedBox(height: 8),
+            Chip(
+              label: Text(
+                user?.role ?? '-',
                 style: const TextStyle(
-                  fontSize: 24,
                   fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              _infoRow(Icons.person, 'Username', user?.username ?? '-'),
-              _infoRow(Icons.email, 'Email', user?.email ?? '-'),
-              _infoRow(Icons.phone, 'Phone', user?.phone ?? '-'),
-              const SizedBox(height: 12),
-              Chip(
-                label: Text(
-                  user?.role ?? '-',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                backgroundColor: user?.role == 'SUPPLIER'
-                    ? Colors.orange.shade700
-                    : const Color(0xFF0077B6),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              ),
-              const SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    print('=== NAVIGATION: Go to Marketplace clicked ===');
-                    Navigator.pushNamed(context, '/marketplace');
-                  },
-                  icon: const Icon(Icons.storefront),
-                  label: const Text('Go to Marketplace'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                'Registration complete! ✅',
-                style: TextStyle(color: Colors.green, fontSize: 14),
+              backgroundColor: isSupplier
+                  ? Colors.orange.shade700
+                  : const Color(0xFF0077B6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            ),
+            const SizedBox(height: 30),
+
+            // Buttons
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.pushNamed(context, '/marketplace'),
+                icon: const Icon(Icons.storefront),
+                label: const Text('Marketplace'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.pushNamed(context, '/my-orders'),
+                icon: Icon(isSupplier ? Icons.receipt_long : Icons.receipt),
+                label: Text(isSupplier ? 'Incoming Orders' : 'My Orders'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade700,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

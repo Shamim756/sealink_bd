@@ -48,6 +48,10 @@ class SocketService {
     _socket?.emit('leave_listing', listingId);
   }
 
+  void joinUser(int userId) {
+    _socket?.emit('join_user', userId);
+  }
+
   void onCommentAdded(Function(dynamic) callback) {
     _socket?.off('comment_added');
     _socket?.on('comment_added', callback);
@@ -61,6 +65,16 @@ class SocketService {
   void onRatingUpdate(Function(dynamic) callback) {
     _socket?.off('rating_update');
     _socket?.on('rating_update', callback);
+  }
+
+  void onNewOrder(Function(dynamic) callback) {
+    _socket?.off('new_order');
+    _socket?.on('new_order', callback);
+  }
+
+  void onOrderUpdate(Function(dynamic) callback) {
+    _socket?.off('order_update');
+    _socket?.on('order_update', callback);
   }
 
   void disconnect() {

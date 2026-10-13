@@ -5,6 +5,7 @@ import '../../../data/models/fish_listing_model.dart';
 import '../../../data/repositories/listing_repository.dart';
 import '../../../data/datasources/socket_service.dart';
 import '../../../providers/auth_provider.dart';
+import '../order/place_order_screen.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   final int listingId;
@@ -29,7 +30,6 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   int _dislikes = 0;
   String? _userReaction;
 
-  // Supplier rating
   double _supplierAvg = 0;
   int _supplierTotal = 0;
 
@@ -59,7 +59,6 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       _loading = false;
     });
 
-    // Load supplier rating
     if (listing != null) {
       final rating = await _repo.getUserRating(listing.supplierId);
       if (!mounted) return;
@@ -82,9 +81,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       try {
         final newComment = CommentModel.fromJson(data as Map<String, dynamic>);
         if (_comments.any((c) => c.id == newComment.id)) return;
-        setState(() {
-          _comments.insert(0, newComment);
-        });
+        setState(() => _comments.insert(0, newComment));
       } catch (_) {}
     });
 
@@ -178,96 +175,50 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     }
   }
 
-  Future<void> _rateSupplier() async {
+  Future<void> _orderNow() async {
     if (_listing == null) return;
     final auth = context.read<AuthProvider>();
+
     if (auth.user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login to rate')),
+        const SnackBar(content: Text('Please login to order')),
+      );
+      return;
+    }
+    if (auth.user!.role != 'BUYER') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only buyers can place orders')),
       );
       return;
     }
     if (auth.user!.id == _listing!.supplierId) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cannot rate yourself')),
+        const SnackBar(content: Text('Cannot order your own listing')),
       );
       return;
     }
 
-    int selectedScore = 5;
-    final reviewCtrl = TextEditingController();
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Rate Supplier'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (i) {
-                  return IconButton(
-                    icon: Icon(
-                      i < selectedScore ? Icons.star : Icons.star_border,
-                      color: Colors.amber,
-                      size: 32,
-                    ),
-                    onPressed: () =>
-                        setDialogState(() => selectedScore = i + 1),
-                  );
-                }),
-              ),
-              TextField(
-                controller: reviewCtrl,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  hintText: 'Write a review (optional)',
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Submit'),
-            ),
-          ],
-        ),
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PlaceOrderScreen(listing: _listing!),
       ),
     );
 
-    if (confirmed != true) return;
-
-    final r = await _repo.submitRating(
-      rateeId: _listing!.supplierId,
-      score: selectedScore,
-      review: reviewCtrl.text.trim().isEmpty ? null : reviewCtrl.text.trim(),
-    );
-
-    if (!mounted) return;
-    if (r['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Rating submitted! New average: ${r['new_average']}'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      _load();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(r['message'] ?? 'Failed'), backgroundColor: Colors.red),
-      );
+    if (result == true && mounted) {
+      // Order placed successfully
+      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final canOrder = auth.user != null &&
+        auth.user!.role == 'BUYER' &&
+        _listing != null &&
+        auth.user!.id != _listing!.supplierId;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Listing Details')),
       body: _loading
@@ -291,6 +242,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       ),
                     ),
                     _buildCommentInput(),
+                    if (canOrder) _buildOrderButton(),
                   ],
                 ),
     );
@@ -378,8 +330,6 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             ],
           ),
           const SizedBox(height: 20),
-
-          // Supplier + rating
           Row(
             children: [
               const Icon(Icons.person, size: 20, color: Colors.grey),
@@ -403,18 +353,6 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           style: TextStyle(
                               fontSize: 12, color: Colors.grey.shade700),
                         ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: _rateSupplier,
-                          child: const Text(
-                            'Rate',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF0077B6),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ],
@@ -422,7 +360,6 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               ),
             ],
           ),
-
           if (_listing!.catchDate != null)
             _infoRow(Icons.calendar_today, 'Catch Date', _listing!.catchDate!),
           if (_listing!.locationDisplay.isNotEmpty)
@@ -498,10 +435,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             const SizedBox(width: 6),
             Text(
               '$label ($count)',
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: color, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -598,55 +532,69 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
   Widget _buildCommentInput() {
     return Container(
-      padding: EdgeInsets.only(
-        left: 12,
-        right: 12,
-        top: 8,
-        bottom: 8 + MediaQuery.of(context).viewInsets.bottom,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Colors.grey.shade300)),
       ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _commentCtrl,
-                decoration: InputDecoration(
-                  hintText: 'Write a comment...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade100,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _commentCtrl,
+              decoration: InputDecoration(
+                hintText: 'Write a comment...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
                 ),
-                onSubmitted: (_) => _postComment(),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 10),
               ),
+              onSubmitted: (_) => _postComment(),
             ),
-            const SizedBox(width: 8),
-            CircleAvatar(
-              backgroundColor: const Color(0xFF0077B6),
-              child: _posting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white),
-                      onPressed: _postComment,
+          ),
+          const SizedBox(width: 8),
+          CircleAvatar(
+            backgroundColor: const Color(0xFF0077B6),
+            child: _posting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
                     ),
-            ),
-          ],
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: _postComment,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderButton() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey.shade300)),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _orderNow,
+          icon: const Icon(Icons.shopping_cart),
+          label: const Text('Order Now'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF0077B6),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+          ),
         ),
       ),
     );

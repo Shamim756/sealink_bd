@@ -8,6 +8,7 @@ import 'presentation/screens/auth/phone_verify_screen.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/marketplace/marketplace_screen.dart';
 import 'presentation/screens/supplier/add_listing_screen.dart';
+import 'presentation/screens/order/my_orders_screen.dart';
 
 class SeaLinkApp extends StatelessWidget {
   const SeaLinkApp({super.key});
@@ -28,6 +29,7 @@ class SeaLinkApp extends StatelessWidget {
         '/home': (_) => const HomeScreen(),
         '/marketplace': (_) => const MarketplaceScreen(),
         '/add-listing': (_) => const AddListingScreen(),
+        '/my-orders': (_) => const MyOrdersScreen(),
       },
     );
   }
