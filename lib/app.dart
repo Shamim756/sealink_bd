@@ -6,6 +6,8 @@ import 'presentation/screens/auth/register_screen.dart';
 import 'presentation/screens/auth/email_verify_screen.dart';
 import 'presentation/screens/auth/phone_verify_screen.dart';
 import 'presentation/screens/home/home_screen.dart';
+import 'presentation/screens/marketplace/marketplace_screen.dart';
+import 'presentation/screens/supplier/add_listing_screen.dart';
 
 class SeaLinkApp extends StatelessWidget {
   const SeaLinkApp({super.key});
@@ -24,6 +26,8 @@ class SeaLinkApp extends StatelessWidget {
         '/verify-email': (_) => const EmailVerifyScreen(),
         '/verify-phone': (_) => const PhoneVerifyScreen(),
         '/home': (_) => const HomeScreen(),
+        '/marketplace': (_) => const MarketplaceScreen(),
+        '/add-listing': (_) => const AddListingScreen(),
       },
     );
   }

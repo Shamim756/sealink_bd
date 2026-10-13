@@ -195,27 +195,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const Text('I am a:',
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Buyer'),
-                        value: 'BUYER',
-                        groupValue: _role,
-                        onChanged: (v) => setState(() => _role = v!),
+                                RadioGroup<String>(
+                  groupValue: _role,
+                  onChanged: (v) => setState(() => _role = v!),
+                  child: Row(
+                    children: const [
+                      Expanded(
+                        child: RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('Buyer'),
+                          value: 'BUYER',
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: RadioListTile<String>(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Supplier'),
-                        value: 'SUPPLIER',
-                        groupValue: _role,
-                        onChanged: (v) => setState(() => _role = v!),
+                      Expanded(
+                        child: RadioListTile<String>(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('Supplier'),
+                          value: 'SUPPLIER',
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
