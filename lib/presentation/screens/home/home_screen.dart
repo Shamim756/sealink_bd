@@ -1,9 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../data/datasources/socket_service.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final _socket = SocketService();
+  bool _hasUnread = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSocket();
+  }
+
+  void _initSocket() {
+    final auth = context.read<AuthProvider>();
+    if (auth.user == null) return;
+
+    _socket.connect();
+    _socket.joinUser(auth.user!.id);
+
+    _socket.onNotification((data) {
+      if (!mounted) return;
+      setState(() => _hasUnread = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('🔔 ${data['content']}'),
+          backgroundColor: const Color(0xFF0077B6),
+        ),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +49,30 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('SeaLink BD'),
         actions: [
+          // Notification Bell
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () async {
+                  await Navigator.pushNamed(context, '/notifications');
+                  if (mounted) setState(() => _hasUnread = false);
+                },
+              ),
+              if (_hasUnread)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
@@ -58,8 +116,6 @@ class HomeScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             ),
             const SizedBox(height: 30),
-
-            // Buttons
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -72,7 +128,6 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(

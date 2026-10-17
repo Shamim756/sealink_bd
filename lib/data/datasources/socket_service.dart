@@ -77,6 +77,11 @@ class SocketService {
     _socket?.on('order_update', callback);
   }
 
+  void onNotification(Function(dynamic) callback) {
+    _socket?.off('notification');
+    _socket?.on('notification', callback);
+  }
+
   void disconnect() {
     _socket?.disconnect();
     _socket?.dispose();
