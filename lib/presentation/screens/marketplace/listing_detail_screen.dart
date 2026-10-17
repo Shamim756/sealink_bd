@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../../../data/models/comment_model.dart';
 import '../../../data/models/fish_listing_model.dart';
 import '../../../data/repositories/listing_repository.dart';
@@ -123,14 +124,20 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     setState(() {
       _reacting = true;
       if (oldReaction == type) {
-        if (type == 'LIKE') _likes--;
-        else _dislikes--;
+        if (type == 'LIKE') {
+          _likes--;
+        } else {
+          _dislikes--;
+        }
         _userReaction = null;
       } else {
         if (oldReaction == 'LIKE') _likes--;
         if (oldReaction == 'DISLIKE') _dislikes--;
-        if (type == 'LIKE') _likes++;
-        else _dislikes++;
+        if (type == 'LIKE') {
+          _likes++;
+        } else {
+          _dislikes++;
+        }
         _userReaction = type;
       }
     });
@@ -170,7 +177,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       _commentCtrl.clear();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(r['message'] ?? 'Failed'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text(r['message'] ?? 'Failed'),
+            backgroundColor: Colors.red),
       );
     }
   }
@@ -206,7 +215,6 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
 
     if (result == true && mounted) {
-      // Order placed successfully
       Navigator.pop(context);
     }
   }
@@ -233,6 +241,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildImageSection(),
+                            _buildVideoSection(),
                             _buildInfoSection(),
                             _buildReactionBar(),
                             const Divider(height: 1),
@@ -273,6 +282,52 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+   Widget _buildVideoSection() {
+    if (_listing?.videoUrl == null || _listing!.videoUrl!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final videoId =
+        YoutubePlayerController.convertUrlToId(_listing!.videoUrl!) ?? '';
+
+    if (videoId.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.play_circle, color: Colors.red, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Catch Video',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: YoutubePlayer(
+              controller: YoutubePlayerController.fromVideoId(
+                videoId: videoId,
+                autoPlay: false,
+                params: const YoutubePlayerParams(
+                  showControls: true,
+                  showFullscreenButton: true,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -46,7 +46,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     setState(() => _checking = true);
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
+    _debounce = Timer(const Duration(milliseconds: 600), () async {
       final ok = await context.read<AuthProvider>().checkUsername(v);
       if (!mounted) return;
       setState(() {
@@ -58,8 +58,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    
     if (_usernameOk != true) {
-      _snack('Choose an available username', false);
+      _snack('Please choose an available username', false);
       return;
     }
 
@@ -188,35 +189,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   validator: Validators.password,
                 ),
-                                const SizedBox(height: 20),
-                const Text('I am a:',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                                const SizedBox(height: 20),
+                const SizedBox(height: 20),
+                
+                // === ROLE SELECTION (Fixed) ===
                 const Text('I am a:',
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                                RadioGroup<String>(
-                  groupValue: _role,
-                  onChanged: (v) => setState(() => _role = v!),
-                  child: Row(
-                    children: const [
-                      Expanded(
-                        child: RadioListTile<String>(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text('Buyer'),
-                          value: 'BUYER',
-                        ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Buyer'),
+                        value: 'BUYER',
+                        groupValue: _role,
+                        onChanged: (v) => setState(() => _role = v!),
                       ),
-                      Expanded(
-                        child: RadioListTile<String>(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text('Supplier'),
-                          value: 'SUPPLIER',
-                        ),
+                    ),
+                    Expanded(
+                      child: RadioListTile<String>(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Supplier'),
+                        value: 'SUPPLIER',
+                        groupValue: _role,
+                        onChanged: (v) => setState(() => _role = v!),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+                // ===============================
+                
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: auth.loading ? null : _submit,

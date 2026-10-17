@@ -15,7 +15,15 @@ class ListingProvider extends ChangeNotifier {
   String? _error;
   int _currentPage = 1;
   int _totalPages = 1;
+  int _totalResults = 0;
   bool _hasMore = true;
+
+  // Filters
+  int? _filterFishCategoryId;
+  int? _filterLocationId;
+  double? _filterMinPrice;
+  double? _filterMaxPrice;
+  String _searchQuery = '';
 
   List<FishListingModel> get listings => _listings;
   List<FishCategoryModel> get categories => _categories;
@@ -23,6 +31,52 @@ class ListingProvider extends ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
   bool get hasMore => _hasMore;
+  int get totalResults => _totalResults;
+
+  // Filter getters
+  int? get filterFishCategoryId => _filterFishCategoryId;
+  int? get filterLocationId => _filterLocationId;
+  double? get filterMinPrice => _filterMinPrice;
+  double? get filterMaxPrice => _filterMaxPrice;
+  String get searchQuery => _searchQuery;
+
+  bool get hasActiveFilters =>
+      _filterFishCategoryId != null ||
+      _filterLocationId != null ||
+      _filterMinPrice != null ||
+      _filterMaxPrice != null ||
+      _searchQuery.isNotEmpty;
+
+  // Filter setters
+  void setFishFilter(int? id) {
+    _filterFishCategoryId = id;
+    loadListings(refresh: true);
+  }
+
+  void setLocationFilter(int? id) {
+    _filterLocationId = id;
+    loadListings(refresh: true);
+  }
+
+  void setPriceFilter(double? min, double? max) {
+    _filterMinPrice = min;
+    _filterMaxPrice = max;
+    loadListings(refresh: true);
+  }
+
+  void setSearchQuery(String q) {
+    _searchQuery = q;
+    loadListings(refresh: true);
+  }
+
+  void clearFilters() {
+    _filterFishCategoryId = null;
+    _filterLocationId = null;
+    _filterMinPrice = null;
+    _filterMaxPrice = null;
+    _searchQuery = '';
+    loadListings(refresh: true);
+  }
 
   Future<void> loadCategories() async {
     _categories = await _repo.getCategories();
@@ -47,7 +101,15 @@ class ListingProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
 
-    final r = await _repo.getListings(page: _currentPage, limit: 10);
+    final r = await _repo.getListings(
+      page: _currentPage,
+      limit: 10,
+      fishCategoryId: _filterFishCategoryId,
+      locationId: _filterLocationId,
+      minPrice: _filterMinPrice,
+      maxPrice: _filterMaxPrice,
+      search: _searchQuery.isEmpty ? null : _searchQuery,
+    );
 
     _loading = false;
 
@@ -57,6 +119,7 @@ class ListingProvider extends ChangeNotifier {
 
       final pagination = r['pagination'] as Map<String, dynamic>;
       _totalPages = pagination['totalPages'] ?? 1;
+      _totalResults = pagination['total'] ?? 0;
       _hasMore = _currentPage < _totalPages;
       _currentPage++;
     } else {

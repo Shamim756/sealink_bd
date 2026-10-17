@@ -17,6 +17,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
   final _quantityCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _videoCtrl = TextEditingController();
 
   int? _fishCategoryId;
   int? _locationId;
@@ -39,6 +40,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
     _quantityCtrl.dispose();
     _priceCtrl.dispose();
     _descCtrl.dispose();
+    _videoCtrl.dispose();
     super.dispose();
   }
 
@@ -80,6 +82,17 @@ class _AddListingScreenState extends State<AddListingScreen> {
       return;
     }
 
+    final videoUrl = _videoCtrl.text.trim();
+    if (videoUrl.isNotEmpty) {
+      // Basic YouTube URL validation
+      final isValid = videoUrl.contains('youtube.com/') ||
+          videoUrl.contains('youtu.be/');
+      if (!isValid) {
+        _snack('Invalid YouTube URL', false);
+        return;
+      }
+    }
+
     final provider = context.read<ListingProvider>();
     final ok = await provider.createListing(
       fishCategoryId: _fishCategoryId!,
@@ -90,6 +103,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
           : null,
       locationId: _locationId,
       imageUrls: _uploadedImageUrls,
+      videoUrl: videoUrl.isEmpty ? null : videoUrl,
       description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
     );
 
@@ -210,6 +224,16 @@ class _AddListingScreenState extends State<AddListingScreen> {
                   prefixIcon: Icon(Icons.description),
                   alignLabelWithHint: true,
                 ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _videoCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'YouTube Video URL (optional)',
+                  prefixIcon: Icon(Icons.play_circle_outline),
+                  hintText: 'https://youtube.com/watch?v=...',
+                ),
+                keyboardType: TextInputType.url,
               ),
               const SizedBox(height: 20),
               const Text('Images',

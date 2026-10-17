@@ -8,7 +8,6 @@ import '../models/location_model.dart';
 class ListingRepository {
   final _dio = ApiClient().dio;
 
-  // ---- Fish Categories ----
   Future<List<FishCategoryModel>> getCategories() async {
     try {
       final r = await _dio.get('/fish-categories');
@@ -19,7 +18,6 @@ class ListingRepository {
     }
   }
 
-  // ---- Locations ----
   Future<List<LocationModel>> getLocations() async {
     try {
       final r = await _dio.get('/locations');
@@ -30,13 +28,30 @@ class ListingRepository {
     }
   }
 
-  // ---- Get Listings ----
-  Future<Map<String, dynamic>> getListings({int page = 1, int limit = 10}) async {
+  // ---- Get Listings (with filters) ----
+  Future<Map<String, dynamic>> getListings({
+    int page = 1,
+    int limit = 10,
+    int? fishCategoryId,
+    int? locationId,
+    double? minPrice,
+    double? maxPrice,
+    String? search,
+  }) async {
     try {
-      final r = await _dio.get('/listings', queryParameters: {
+      final params = <String, dynamic>{
         'page': page,
         'limit': limit,
-      });
+      };
+      if (fishCategoryId != null) params['fish_category_id'] = fishCategoryId;
+      if (locationId != null) params['location_id'] = locationId;
+      if (minPrice != null) params['min_price'] = minPrice;
+      if (maxPrice != null) params['max_price'] = maxPrice;
+      if (search != null && search.trim().isNotEmpty) {
+        params['search'] = search.trim();
+      }
+
+      final r = await _dio.get('/listings', queryParameters: params);
       final listings = (r.data['listings'] as List)
           .map((e) => FishListingModel.fromJson(e))
           .toList();
@@ -54,7 +69,6 @@ class ListingRepository {
     }
   }
 
-  // ---- Get Single Listing ----
   Future<FishListingModel?> getListing(int id) async {
     try {
       final r = await _dio.get('/listings/$id');
@@ -64,7 +78,6 @@ class ListingRepository {
     }
   }
 
-  // ---- Create Listing ----
   Future<Map<String, dynamic>> createListing({
     required int fishCategoryId,
     required double quantityKg,
@@ -95,7 +108,6 @@ class ListingRepository {
     }
   }
 
-  // ---- Update Listing ----
   Future<Map<String, dynamic>> updateListing({
     required int id,
     double? quantityKg,
@@ -123,7 +135,6 @@ class ListingRepository {
     }
   }
 
-  // ---- Delete Listing ----
   Future<Map<String, dynamic>> deleteListing(int id) async {
     try {
       await _dio.delete('/listings/$id');
@@ -136,7 +147,6 @@ class ListingRepository {
     }
   }
 
-  // ---- Upload Image ----
   Future<Map<String, dynamic>> uploadImage(XFile file) async {
     try {
       final formData = FormData.fromMap({
@@ -152,10 +162,9 @@ class ListingRepository {
     }
   }
 
-  // ---- React (Like/Dislike) ----
   Future<Map<String, dynamic>> react({
     required int listingId,
-    required String type, // 'LIKE' | 'DISLIKE'
+    required String type,
   }) async {
     try {
       final r = await _dio.post('/listings/$listingId/react', data: {'type': type});
@@ -173,7 +182,6 @@ class ListingRepository {
     }
   }
 
-  // ---- Get Comments ----
   Future<List<dynamic>> getComments(int listingId) async {
     try {
       final r = await _dio.get('/listings/$listingId/comments');
@@ -183,7 +191,6 @@ class ListingRepository {
     }
   }
 
-  // ---- Post Comment ----
   Future<Map<String, dynamic>> postComment({
     required int listingId,
     required String content,
@@ -206,7 +213,6 @@ class ListingRepository {
     }
   }
 
-  // ---- Get User Rating ----
   Future<Map<String, dynamic>> getUserRating(int userId) async {
     try {
       final r = await _dio.get('/users/$userId/rating');
@@ -226,7 +232,6 @@ class ListingRepository {
     }
   }
 
-  // ---- Submit Rating ----
   Future<Map<String, dynamic>> submitRating({
     required int rateeId,
     int? orderId,
