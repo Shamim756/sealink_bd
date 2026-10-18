@@ -1,5 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../data/repositories/order_repository.dart';
 import '../../../providers/auth_provider.dart';
 
@@ -54,13 +59,202 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  // ==========================================
+  // PDF GENERATOR FUNCTION
+  // ==========================================
+  Future<pw.Document> _createPdf() async {
+    final pdf = pw.Document();
+    final order = _order!;
+    final items = order['items'] as List? ?? [];
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Padding(
+            padding: const pw.EdgeInsets.all(32),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('SeaLink BD', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800)),
+                        pw.SizedBox(height: 4),
+                        pw.Text('Seafood Supply Chain', style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
+                      ],
+                    ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        pw.Text('INVOICE', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                        pw.SizedBox(height: 4),
+                        pw.Text('Order #${order['id']}', style: const pw.TextStyle(fontSize: 14)),
+                        pw.Text('Date: ${order['created_at']?.toString().split('T')[0] ?? '-'}', style: const pw.TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 20),
+                pw.Divider(),
+                pw.SizedBox(height: 20),
+
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Billed To:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        pw.SizedBox(height: 4),
+                        pw.Text(order['buyer_name'] ?? '-'),
+                        pw.Text(order['buyer_phone'] ?? '-'),
+                        pw.Text('${order['upazila'] ?? ''}, ${order['district'] ?? ''}, ${order['division'] ?? ''}'),
+                      ],
+                    ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Supplier:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        pw.SizedBox(height: 4),
+                        pw.Text(order['supplier_name'] ?? '-'),
+                        pw.Text(order['supplier_phone'] ?? '-'),
+                      ],
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 30),
+
+                pw.TableHelper.fromTextArray(
+                  context: context,
+                  headers: ['Fish', 'Quantity', 'Price/kg', 'Subtotal'],
+                  headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                  headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
+                  cellAlignment: pw.Alignment.centerLeft,
+                  cellAlignments: {
+                    0: pw.Alignment.centerLeft,
+                    1: pw.Alignment.center,
+                    2: pw.Alignment.centerRight,
+                    3: pw.Alignment.centerRight,
+                  },
+                  data: items.map((item) {
+                    return [
+                      item['fish_name_bn'] ?? '-',
+                      '${item['quantity_kg']} kg',
+                      '৳ ${item['price_per_kg']}',
+                      '৳ ${item['subtotal']}',
+                    ];
+                  }).toList(),
+                ),
+                pw.SizedBox(height: 20),
+
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.end,
+                  children: [
+                    pw.Container(
+                      width: 200,
+                      padding: const pw.EdgeInsets.all(12),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.grey100,
+                        borderRadius: pw.BorderRadius.circular(8),
+                      ),
+                      child: pw.Column(
+                        children: [
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('Total:'),
+                              pw.Text('৳ ${order['total_price']}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16, color: PdfColors.green800)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 40),
+
+                pw.Divider(),
+                pw.SizedBox(height: 10),
+                pw.Center(
+                  child: pw.Text('Thank you for using SeaLink BD!', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+    return pdf;
+  }
+
+  // Show Print Preview
+  Future<void> _generatePdf() async {
+    if (_order == null) return;
+    final pdf = await _createPdf();
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: 'Invoice_Order_${_order!['id']}.pdf',
+    );
+  }
+
+  // Save PDF to Device
+  Future<void> _savePdf() async {
+    if (_order == null) return;
+
+    try {
+      final pdf = await _createPdf();
+      final bytes = await pdf.save();
+
+      // Get Downloads Directory (Linux/Android)
+      Directory? dir;
+      if (Platform.isAndroid) {
+        dir = Directory('/storage/emulated/0/Download');
+        if (!await dir.exists()) {
+          dir = await getExternalStorageDirectory();
+        }
+      } else {
+        // For Linux, macOS, Windows (Saves in /home/user/Downloads)
+        dir = await getDownloadsDirectory();
+      }
+
+      if (dir == null) throw Exception('Could not find downloads directory');
+
+      final file = File('${dir.path}/Invoice_Order_${_order!['id']}.pdf');
+      await file.writeAsBytes(bytes);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Saved to: ${file.path}'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Failed to save: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final isSupplier = auth.user?.role == 'SUPPLIER';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Order Details')),
+      appBar: AppBar(
+        title: const Text('Order Details'),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _order == null
@@ -106,6 +300,32 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               '${_order!['upazila'] ?? ''}, ${_order!['district'] ?? ''}, ${_order!['division'] ?? ''}'),
                         ]),
                       ],
+                      const SizedBox(height: 24),
+
+                      // PDF Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _generatePdf,
+                              icon: const Icon(Icons.print),
+                              label: const Text('Print Preview'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _savePdf,
+                              icon: const Icon(Icons.download),
+                              label: const Text('Save PDF'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0077B6),
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 24),
 
                       // Supplier action buttons
