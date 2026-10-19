@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../data/models/fish_listing_model.dart';
 import '../../providers/auth_provider.dart';
@@ -8,8 +9,14 @@ import '../../data/repositories/listing_repository.dart';
 class ListingCard extends StatefulWidget {
   final FishListingModel listing;
   final VoidCallback? onTap;
+  final int index; // অ্যানিমেশনের জন্য ইনডেক্স
 
-  const ListingCard({super.key, required this.listing, this.onTap});
+  const ListingCard({
+    super.key,
+    required this.listing,
+    this.onTap,
+    this.index = 0,
+  });
 
   @override
   State<ListingCard> createState() => _ListingCardState();
@@ -48,16 +55,6 @@ class _ListingCardState extends State<ListingCard> {
     });
   }
 
-  @override
-  void didUpdateWidget(covariant ListingCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.listing.id != widget.listing.id) {
-      _likes = widget.listing.likeCount;
-      _dislikes = widget.listing.dislikeCount;
-      _userReaction = widget.listing.userReaction;
-    }
-  }
-
   Future<void> _react(String type) async {
     if (_reacting) return;
 
@@ -69,7 +66,6 @@ class _ListingCardState extends State<ListingCard> {
       return;
     }
 
-    // Optimistic UI update
     final oldReaction = _userReaction;
     final oldLikes = _likes;
     final oldDislikes = _dislikes;
@@ -77,16 +73,20 @@ class _ListingCardState extends State<ListingCard> {
     setState(() {
       _reacting = true;
       if (oldReaction == type) {
-        // Toggle off
-        if (type == 'LIKE') _likes--;
-        else _dislikes--;
+        if (type == 'LIKE') {
+          _likes--;
+        } else {
+          _dislikes--;
+        }
         _userReaction = null;
       } else {
-        // Remove old, add new
         if (oldReaction == 'LIKE') _likes--;
         if (oldReaction == 'DISLIKE') _dislikes--;
-        if (type == 'LIKE') _likes++;
-        else _dislikes++;
+        if (type == 'LIKE') {
+          _likes++;
+        } else {
+          _dislikes++;
+        }
         _userReaction = type;
       }
     });
@@ -94,7 +94,6 @@ class _ListingCardState extends State<ListingCard> {
     final r = await _repo.react(listingId: widget.listing.id, type: type);
 
     if (!mounted) return;
-
     setState(() => _reacting = false);
 
     if (r['success'] == true) {
@@ -104,7 +103,6 @@ class _ListingCardState extends State<ListingCard> {
         _userReaction = r['userReaction'];
       });
     } else {
-      // Rollback
       setState(() {
         _likes = oldLikes;
         _dislikes = oldDislikes;
@@ -246,7 +244,10 @@ class _ListingCardState extends State<ListingCard> {
           ],
         ),
       ),
-    );
+    )
+        .animate(delay: (widget.index * 100).ms) // সিরিয়ালি লোড হবে
+        .fadeIn(duration: 400.ms)
+        .slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOut);
   }
 
   Widget _reactionButton({
