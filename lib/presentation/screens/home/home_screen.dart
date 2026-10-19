@@ -116,6 +116,8 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             ),
             const SizedBox(height: 30),
+            
+            // Marketplace Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -128,6 +130,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 12),
+            
+            // My Orders Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -136,6 +140,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 label: Text(isSupplier ? 'Incoming Orders' : 'My Orders'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange.shade700,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // AI Chatbot Button (নতুন)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.pushNamed(context, '/ai-chat'),
+                icon: const Icon(Icons.smart_toy),
+                label: const Text('AI মাছ সহকারী'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple.shade700,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),

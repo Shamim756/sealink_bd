@@ -10,6 +10,7 @@ import 'presentation/screens/marketplace/marketplace_screen.dart';
 import 'presentation/screens/supplier/add_listing_screen.dart';
 import 'presentation/screens/order/my_orders_screen.dart';
 import 'presentation/screens/notification/notification_screen.dart';
+import 'presentation/screens/ai/ai_chatbot_screen.dart'; // নতুন ইমপোর্ট
 
 class SeaLinkApp extends StatelessWidget {
   const SeaLinkApp({super.key});
@@ -32,6 +33,7 @@ class SeaLinkApp extends StatelessWidget {
         '/add-listing': (_) => const AddListingScreen(),
         '/my-orders': (_) => const MyOrdersScreen(),
         '/notifications': (_) => const NotificationScreen(),
+        '/ai-chat': (_) => const AIChatbotScreen(), // নতুন রুট
       },
     );
   }
