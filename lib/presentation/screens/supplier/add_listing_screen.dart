@@ -84,7 +84,6 @@ class _AddListingScreenState extends State<AddListingScreen> {
 
     final videoUrl = _videoCtrl.text.trim();
     if (videoUrl.isNotEmpty) {
-      // Basic YouTube URL validation
       final isValid = videoUrl.contains('youtube.com/') ||
           videoUrl.contains('youtu.be/');
       if (!isValid) {
@@ -136,6 +135,7 @@ class _AddListingScreenState extends State<AddListingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Fish Category
               DropdownButtonFormField<int>(
                 initialValue: _fishCategoryId,
                 decoration: const InputDecoration(
@@ -152,6 +152,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
                 validator: (v) => v == null ? 'Select fish category' : null,
               ),
               const SizedBox(height: 16),
+              
+              // Quantity
               TextFormField(
                 controller: _quantityCtrl,
                 keyboardType: TextInputType.number,
@@ -166,6 +168,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
                 },
               ),
               const SizedBox(height: 16),
+              
+              // Price
               TextFormField(
                 controller: _priceCtrl,
                 keyboardType: TextInputType.number,
@@ -180,6 +184,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
                 },
               ),
               const SizedBox(height: 16),
+              
+              // Catch Date
               InkWell(
                 onTap: _pickDate,
                 child: InputDecorator(
@@ -198,6 +204,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              
+              // Location Dropdown
               DropdownButtonFormField<int>(
                 initialValue: _locationId,
                 decoration: const InputDecoration(
@@ -207,15 +215,22 @@ class _AddListingScreenState extends State<AddListingScreen> {
                 items: provider.locations
                     .map((l) => DropdownMenuItem(
                           value: l.id,
-                          child: Text(
-                            l.displayName,
-                            overflow: TextOverflow.ellipsis,
+                          child: SizedBox(
+                            width: 200,
+                            child: Text(
+                              l.displayName,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           ),
                         ))
                     .toList(),
                 onChanged: (v) => setState(() => _locationId = v),
+                validator: (v) => v == null ? 'Select location' : null, // ভ্যালিডেশন যোগ করা হলো
               ),
               const SizedBox(height: 16),
+              
+              // Description
               TextFormField(
                 controller: _descCtrl,
                 maxLines: 3,
@@ -226,6 +241,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              
+              // YouTube URL
               TextFormField(
                 controller: _videoCtrl,
                 decoration: const InputDecoration(
@@ -236,6 +253,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
                 keyboardType: TextInputType.url,
               ),
               const SizedBox(height: 20),
+              
+              // Images
               const Text('Images',
                   style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
@@ -305,6 +324,8 @@ class _AddListingScreenState extends State<AddListingScreen> {
                 ],
               ),
               const SizedBox(height: 30),
+              
+              // Submit Button
               ElevatedButton(
                 onPressed: (provider.loading || _uploading) ? null : _submit,
                 child: provider.loading
