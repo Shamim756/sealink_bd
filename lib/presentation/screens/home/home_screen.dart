@@ -46,10 +46,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final isSupplier = user?.role == 'SUPPLIER';
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text('SeaLink BD'),
         actions: [
-          // Notification Bell
           Stack(
             children: [
               IconButton(
@@ -85,80 +85,117 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 20),
-            const Icon(Icons.check_circle, size: 70, color: Colors.green),
-            const SizedBox(height: 16),
-            Text(
-              'Welcome, ${user?.name ?? "User"}!',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            _infoRow(Icons.person, 'Username', user?.username ?? '-'),
-            _infoRow(Icons.email, 'Email', user?.email ?? '-'),
-            _infoRow(Icons.phone, 'Phone', user?.phone ?? '-'),
-            const SizedBox(height: 8),
-            Chip(
-              label: Text(
-                user?.role ?? '-',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+            // Profile Card
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0077B6), Color(0xFF00B4D8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0077B6).withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-              backgroundColor: isSupplier
-                  ? Colors.orange.shade700
-                  : const Color(0xFF0077B6),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundColor: Colors.white,
+                    child: Text(
+                      user?.name.isNotEmpty == true
+                          ? user!.name[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0077B6),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Welcome, ${user?.name ?? "User"}!',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    user?.email ?? '-',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      user?.role ?? '-',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 30),
-            
-            // Marketplace Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, '/marketplace'),
-                icon: const Icon(Icons.storefront),
-                label: const Text('Marketplace'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            
-            // My Orders Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, '/my-orders'),
-                icon: Icon(isSupplier ? Icons.receipt_long : Icons.receipt),
-                label: Text(isSupplier ? 'Incoming Orders' : 'My Orders'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.shade700,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
 
-            // AI Chatbot Button (নতুন)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, '/ai-chat'),
-                icon: const Icon(Icons.smart_toy),
-                label: const Text('AI মাছ সহকারী'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple.shade700,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
+            const Text(
+              'Quick Actions',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // Menu Grid
+            _buildMenuCard(
+              title: 'Marketplace',
+              subtitle: 'Browse & order fresh fish',
+              icon: Icons.storefront,
+              color: const Color(0xFF0077B6),
+              onTap: () => Navigator.pushNamed(context, '/marketplace'),
+            ),
+            const SizedBox(height: 12),
+            _buildMenuCard(
+              title: isSupplier ? 'Incoming Orders' : 'My Orders',
+              subtitle: 'Manage your purchases/sales',
+              icon: Icons.receipt_long,
+              color: Colors.orange.shade700,
+              onTap: () => Navigator.pushNamed(context, '/my-orders'),
+            ),
+            const SizedBox(height: 12),
+            _buildMenuCard(
+              title: 'AI মাছ সহকারী',
+              subtitle: 'Ask about fish prices or diseases',
+              icon: Icons.smart_toy,
+              color: Colors.purple.shade700,
+              onTap: () => Navigator.pushNamed(context, '/ai-chat'),
             ),
           ],
         ),
@@ -166,18 +203,67 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 18, color: Colors.grey),
-          const SizedBox(width: 8),
-          Text('$label: ',
-              style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(value),
-        ],
+  Widget _buildMenuCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios,
+                size: 16, color: Colors.grey.shade400),
+          ],
+        ),
       ),
     );
   }

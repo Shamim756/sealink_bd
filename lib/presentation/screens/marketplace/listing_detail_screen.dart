@@ -1,6 +1,8 @@
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../data/models/comment_model.dart';
 import '../../../data/models/fish_listing_model.dart';
 import '../../../data/repositories/listing_repository.dart';
@@ -26,6 +28,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   bool _loading = true;
   bool _posting = false;
   bool _reacting = false;
+  bool _deleting = false;
 
   int _likes = 0;
   int _dislikes = 0;
@@ -105,6 +108,57 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     _socket.leaveListing(widget.listingId);
     _commentCtrl.dispose();
     super.dispose();
+  }
+
+  // ==========================================
+  // DELETE LISTING FUNCTION
+  // ==========================================
+  Future<void> _deleteListing() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Listing'),
+        content: const Text(
+            'Are you sure you want to delete this listing? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _deleting = true);
+
+    final result = await _repo.deleteListing(widget.listingId);
+
+    if (!mounted) return;
+    setState(() => _deleting = false);
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Listing deleted successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Failed to delete listing'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _react(String type) async {
@@ -227,8 +281,33 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         _listing != null &&
         auth.user!.id != _listing!.supplierId;
 
+    final canDelete = auth.user != null &&
+        auth.user!.role == 'SUPPLIER' &&
+        _listing != null &&
+        auth.user!.id == _listing!.supplierId;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Listing Details')),
+      appBar: AppBar(
+        title: const Text('Listing Details'),
+        actions: [
+          if (canDelete)
+            _deleting
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                    tooltip: 'Delete Listing',
+                    onPressed: _deleteListing,
+                  ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _listing == null
@@ -257,9 +336,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
-  Widget _buildImageSection() {
+    Widget _buildImageSection() {
     return SizedBox(
-      height: 250,
+      height: 280,
       child: _listing!.imageUrls.isEmpty
           ? Container(
               color: Colors.blue.shade50,
@@ -269,68 +348,98 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             )
           : PageView.builder(
               itemCount: _listing!.imageUrls.length,
-              itemBuilder: (context, i) => Image.network(
-                _listing!.imageUrls[i],
-                fit: BoxFit.cover,
-                width: double.infinity,
-                errorBuilder: (_, __, ___) => Container(
-                  color: Colors.blue.shade50,
-                  child: const Center(
-                    child:
-                        Icon(Icons.set_meal, size: 80, color: Color(0xFF0077B6)),
+              itemBuilder: (context, i) {
+                final imageUrl = _listing!.imageUrls[i];
+                return GestureDetector(
+                  onTap: () async {
+                    // ছবিতে ক্লিক করলে ব্রাউজারে ওপেন হবে
+                    final url = Uri.parse(imageUrl);
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  child: Container(
+                    color: Colors.black87,
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      width: double.infinity,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: Colors.blue.shade50,
+                        child: const Center(
+                          child: Icon(Icons.set_meal,
+                              size: 80, color: Color(0xFF0077B6)),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
     );
   }
-
-   Widget _buildVideoSection() {
+      Widget _buildVideoSection() {
     if (_listing?.videoUrl == null || _listing!.videoUrl!.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    final videoId =
-        YoutubePlayerController.convertUrlToId(_listing!.videoUrl!) ?? '';
-
-    if (videoId.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.play_circle, color: Colors.red, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Catch Video',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
+      child: InkWell(
+        onTap: () async {
+          final url = Uri.parse(_listing!.videoUrl!);
+          try {
+            // url_launcher দিয়ে লিংক ওপেন করা
+            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+              throw Exception('Could not launch $url');
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Could not open video: $e')),
+              );
+            }
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
             borderRadius: BorderRadius.circular(12),
-            child: YoutubePlayer(
-              controller: YoutubePlayerController.fromVideoId(
-                videoId: videoId,
-                autoPlay: false,
-                params: const YoutubePlayerParams(
-                  showControls: true,
-                  showFullscreenButton: true,
+            border: Border.all(color: Colors.red.shade200),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.play_circle, color: Colors.red, size: 30),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Watch Catch Video',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _listing!.videoUrl!,
+                      style: const TextStyle(fontSize: 12, color: Colors.blue),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
-            ),
+              const Icon(Icons.open_in_new, color: Colors.red, size: 20),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
-
   Widget _buildInfoSection() {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -417,8 +526,68 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
           ),
           if (_listing!.catchDate != null)
             _infoRow(Icons.calendar_today, 'Catch Date', _listing!.catchDate!),
-          if (_listing!.locationDisplay.isNotEmpty)
-            _infoRow(Icons.location_on, 'Location', _listing!.locationDisplay),
+
+          // LOCATION + MAP
+          if (_listing!.locationDisplay.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.location_on, size: 20, color: Colors.grey),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Location: ${_listing!.locationDisplay}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              height: 200,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: LatLng(
+                      _listing!.latitude ?? 23.8103,
+                      _listing!.longitude ?? 90.4125,
+                    ),
+                    initialZoom: 12.0,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.sealink_bd',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: LatLng(
+                            _listing!.latitude ?? 23.8103,
+                            _listing!.longitude ?? 90.4125,
+                          ),
+                          width: 40,
+                          height: 40,
+                          child: const Icon(
+                            Icons.location_pin,
+                            color: Colors.red,
+                            size: 40,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
           if (_listing!.description != null &&
               _listing!.description!.isNotEmpty) ...[
             const SizedBox(height: 16),

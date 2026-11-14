@@ -9,7 +9,7 @@ import '../../data/repositories/listing_repository.dart';
 class ListingCard extends StatefulWidget {
   final FishListingModel listing;
   final VoidCallback? onTap;
-  final int index; // অ্যানিমেশনের জন্য ইনডেক্স
+  final int index;
 
   const ListingCard({
     super.key,
@@ -116,28 +116,34 @@ class _ListingCardState extends State<ListingCard> {
     final listing = widget.listing;
 
     return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      elevation: 3,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: widget.onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Image Section (ছবি সুন্দরভাবে দেখানোর জন্য)
             SizedBox(
-              height: 160,
+              height: 200,
               width: double.infinity,
-              child: listing.primaryImage != null
-                  ? Image.network(
-                      listing.primaryImage!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _imagePlaceholder(),
-                    )
-                  : _imagePlaceholder(),
+              child: Container(
+                color: Colors.grey.shade100,
+                child: listing.primaryImage != null
+                    ? Image.network(
+                        listing.primaryImage!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                      )
+                    : _imagePlaceholder(),
+              ),
             ),
+            
+            // Details Section
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -147,23 +153,25 @@ class _ListingCardState extends State<ListingCard> {
                         child: Text(
                           listing.fishNameBn,
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.green.shade100,
-                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.green.shade200),
                         ),
                         child: Text(
                           '৳${listing.pricePerKg.toStringAsFixed(0)}/kg',
                           style: const TextStyle(
                             color: Colors.green,
                             fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
                         ),
                       ),
@@ -172,47 +180,50 @@ class _ListingCardState extends State<ListingCard> {
                   const SizedBox(height: 4),
                   Text(
                     listing.fishNameEn,
-                    style:
-                        TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(Icons.scale, size: 16, color: Colors.grey),
+                      const Icon(Icons.scale, size: 18, color: Colors.grey),
                       const SizedBox(width: 4),
-                      Text('${listing.quantityKg.toStringAsFixed(0)} kg'),
+                      Text('${listing.quantityKg.toStringAsFixed(0)} kg',
+                          style: const TextStyle(fontWeight: FontWeight.w500)),
                       const SizedBox(width: 16),
-                      const Icon(Icons.person, size: 16, color: Colors.grey),
+                      const Icon(Icons.person, size: 18, color: Colors.grey),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           listing.supplierName,
                           overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
                       ),
                     ],
                   ),
                   if (listing.locationDisplay.isNotEmpty) ...[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         const Icon(Icons.location_on,
-                            size: 16, color: Colors.grey),
+                            size: 18, color: Colors.grey),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             listing.locationDisplay,
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey.shade700),
+                                fontSize: 13, color: Colors.grey.shade700),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
                   ],
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   const Divider(height: 1),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
+                  
+                  // Reactions Section
                   Row(
                     children: [
                       _reactionButton(
@@ -225,7 +236,7 @@ class _ListingCardState extends State<ListingCard> {
                             : Colors.grey.shade700,
                         onTap: () => _react('LIKE'),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 20),
                       _reactionButton(
                         icon: _userReaction == 'DISLIKE'
                             ? Icons.thumb_down
@@ -245,7 +256,7 @@ class _ListingCardState extends State<ListingCard> {
         ),
       ),
     )
-        .animate(delay: (widget.index * 100).ms) // সিরিয়ালি লোড হবে
+        .animate(delay: (widget.index * 100).ms)
         .fadeIn(duration: 400.ms)
         .slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOut);
   }
@@ -260,16 +271,17 @@ class _ListingCardState extends State<ListingCard> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: color),
+            Icon(icon, size: 22, color: color),
             const SizedBox(width: 6),
             Text(
               '$count',
               style: TextStyle(
                 color: color,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
               ),
             ),
           ],
@@ -282,7 +294,7 @@ class _ListingCardState extends State<ListingCard> {
     return Container(
       color: Colors.blue.shade50,
       child: const Center(
-        child: Icon(Icons.set_meal, size: 50, color: Color(0xFF0077B6)),
+        child: Icon(Icons.set_meal, size: 60, color: Color(0xFF0077B6)),
       ),
     );
   }
