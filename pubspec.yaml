@@ -21,6 +21,7 @@ dependencies:
   pdf: ^3.13.1
   printing: ^5.15.1
   path_provider: ^2.1.6
+  url_launcher: ^6.3.3
   flutter_animate: ^4.5.2
   google_generative_ai: ^0.4.7
   flutter_dotenv: ^6.0.1

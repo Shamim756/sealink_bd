@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../../../data/models/comment_model.dart';
 import '../../../data/models/fish_listing_model.dart';
 import '../../../data/repositories/listing_repository.dart';
 import '../../../data/datasources/socket_service.dart';
 import '../../../providers/auth_provider.dart';
 import '../order/place_order_screen.dart';
+import '../../animations/app_animations.dart';
 
 class ListingDetailScreen extends StatefulWidget {
   final int listingId;
@@ -22,6 +24,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   final _repo = ListingRepository();
   final _socket = SocketService();
   final _commentCtrl = TextEditingController();
+  YoutubePlayerController? _videoController;
 
   FishListingModel? _listing;
   List<CommentModel> _comments = [];
@@ -107,6 +110,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   void dispose() {
     _socket.leaveListing(widget.listingId);
     _commentCtrl.dispose();
+    _videoController?.close();
     super.dispose();
   }
 
@@ -319,12 +323,27 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildImageSection(),
-                            _buildVideoSection(),
-                            _buildInfoSection(),
-                            _buildReactionBar(),
+                            StaggeredEntrance(
+                              index: 0,
+                              child: _buildImageSection(),
+                            ),
+                            StaggeredEntrance(
+                              index: 1,
+                              child: _buildVideoSection(),
+                            ),
+                            StaggeredEntrance(
+                              index: 2,
+                              child: _buildInfoSection(),
+                            ),
+                            StaggeredEntrance(
+                              index: 3,
+                              child: _buildReactionBar(),
+                            ),
                             const Divider(height: 1),
-                            _buildCommentsSection(),
+                            StaggeredEntrance(
+                              index: 4,
+                              child: _buildCommentsSection(),
+                            ),
                           ],
                         ),
                       ),
@@ -336,7 +355,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
   }
 
-    Widget _buildImageSection() {
+  Widget _buildImageSection() {
     return SizedBox(
       height: 280,
       child: _listing!.imageUrls.isEmpty
@@ -355,7 +374,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     // ছবিতে ক্লিক করলে ব্রাউজারে ওপেন হবে
                     final url = Uri.parse(imageUrl);
                     if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                      await launchUrl(url,
+                          mode: LaunchMode.externalApplication);
                     }
                   },
                   child: Container(
@@ -378,68 +398,90 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             ),
     );
   }
-      Widget _buildVideoSection() {
+
+  Widget _buildVideoSection() {
     if (_listing?.videoUrl == null || _listing!.videoUrl!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final videoId = YoutubePlayerController.convertUrlToId(_listing!.videoUrl!);
+    if (videoId == null) {
       return const SizedBox.shrink();
     }
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: InkWell(
-        onTap: () async {
-          final url = Uri.parse(_listing!.videoUrl!);
-          try {
-            // url_launcher দিয়ে লিংক ওপেন করা
-            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-              throw Exception('Could not launch $url');
-            }
-          } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Could not open video: $e')),
-              );
-            }
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.red.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.red.shade200),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.play_circle, color: Colors.red, size: 30),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          children: [
+            if (_videoController == null)
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    const Text(
-                      'Watch Catch Video',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red,
+                    Image.network(
+                      'https://img.youtube.com/vi/$videoId/hqdefault.jpg',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => ColoredBox(
+                        color: Colors.black87,
+                        child: Icon(
+                          Icons.play_circle_outline,
+                          size: 64,
+                          color: Colors.white.withValues(alpha: 0.8),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _listing!.videoUrl!,
-                      style: const TextStyle(fontSize: 12, color: Colors.blue),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Material(
+                      color: Colors.black26,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _videoController =
+                                YoutubePlayerController.fromVideoId(
+                              videoId: videoId,
+                              autoPlay: false,
+                            );
+                          });
+                        },
+                        child: const Center(
+                          child: Icon(
+                            Icons.play_circle_fill,
+                            size: 64,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
+              )
+            else
+              YoutubePlayer(controller: _videoController!),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () async {
+                  final url = Uri.parse(_listing!.videoUrl!);
+                  if (!await launchUrl(url,
+                          mode: LaunchMode.externalApplication) &&
+                      mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Could not open video')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Open in YouTube'),
               ),
-              const Icon(Icons.open_in_new, color: Colors.red, size: 20),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+
   Widget _buildInfoSection() {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -631,9 +673,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 : Icons.thumb_down_outlined,
             label: 'Dislike',
             count: _dislikes,
-            color: _userReaction == 'DISLIKE'
-                ? Colors.red
-                : Colors.grey.shade700,
+            color:
+                _userReaction == 'DISLIKE' ? Colors.red : Colors.grey.shade700,
             onTap: () => _react('DISLIKE'),
           ),
         ],
@@ -648,20 +689,38 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    return PressAnimation(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Row(
-          children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(width: 6),
-            Text(
-              '$label ($count)',
-              style: TextStyle(color: color, fontWeight: FontWeight.w600),
-            ),
-          ],
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                transitionBuilder: (child, animation) =>
+                    ScaleTransition(scale: animation, child: child),
+                child: Icon(
+                  icon,
+                  key: ValueKey(icon),
+                  size: 22,
+                  color: color,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '$label (',
+                style: TextStyle(color: color, fontWeight: FontWeight.w600),
+              ),
+              AnimatedCount(count: count),
+              Text(
+                ')',
+                style: TextStyle(color: color, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -679,8 +738,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               const SizedBox(width: 8),
               Text(
                 'Comments (${_comments.length})',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ],
           ),
@@ -696,7 +755,12 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
               ),
             )
           else
-            ..._comments.map(_buildCommentTile),
+            ..._comments.asMap().entries.map(
+                  (entry) => StaggeredEntrance(
+                    index: entry.key,
+                    child: _buildCommentTile(entry.value),
+                  ),
+                ),
         ],
       ),
     );
@@ -731,15 +795,15 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                     const SizedBox(width: 8),
                     Text(
                       c.timeAgo,
-                      style: TextStyle(
-                          color: Colors.grey.shade600, fontSize: 12),
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 12),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
@@ -774,8 +838,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.grey.shade100,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               ),
               onSubmitted: (_) => _postComment(),
             ),
@@ -783,19 +847,24 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
           const SizedBox(width: 8),
           CircleAvatar(
             backgroundColor: const Color(0xFF0077B6),
-            child: _posting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
+            child: PressAnimation(
+              onTap: _posting ? null : _postComment,
+              borderRadius: const BorderRadius.all(Radius.circular(24)),
+              child: _posting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Icon(Icons.send, color: Colors.white),
                     ),
-                  )
-                : IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: _postComment,
-                  ),
+            ),
           ),
         ],
       ),
@@ -811,13 +880,17 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       ),
       child: SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: _orderNow,
-          icon: const Icon(Icons.shopping_cart),
-          label: const Text('Order Now'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0077B6),
-            padding: const EdgeInsets.symmetric(vertical: 14),
+        child: PressAnimation(
+          onTap: _orderNow,
+          borderRadius: BorderRadius.circular(8),
+          child: ElevatedButton.icon(
+            onPressed: null,
+            icon: const Icon(Icons.shopping_cart),
+            label: const Text('Order Now'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0077B6),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
           ),
         ),
       ),
@@ -831,8 +904,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
         children: [
           Icon(icon, size: 20, color: Colors.grey),
           const SizedBox(width: 10),
-          Text('$label: ',
-              style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
           Expanded(child: Text(value)),
         ],
       ),
